@@ -1,0 +1,789 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Apontamento de Produção</title>
+  <!-- Incluindo Bootstrap para melhorar a interface -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Incluindo Bootstrap Icons -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+  <!-- Incluindo Chart.js para gráficos -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Incluindo SheetJS para exportar para Excel -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.0/xlsx.full.min.js"></script>
+  <!-- Incluindo jsPDF para exportar para PDF -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <!-- Incluindo html2canvas para exportar gráficos como imagens -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f4f4f9;
+      color: #333;
+      margin: 0;
+      padding: 0;
+    }
+    .login-container {
+      background-color: #fff;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      width: 300px;
+      text-align: center;
+      margin: 20px auto;
+    }
+    .login-container h2 {
+      margin-bottom: 20px;
+      color: #28a745;
+    }
+    .login-container input {
+      width: 100%;
+      padding: 10px;
+      margin: 10px 0;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    .login-container button {
+      width: 100%;
+      padding: 10px;
+      background-color: #28a745;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .login-container button:hover {
+      background-color: #218838;
+    }
+    .hidden {
+      display: none;
+    }
+    .feedback {
+      margin-top: 10px;
+      color: red;
+    }
+    .apontamento-container {
+      background-color: #fff;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      width: 95%;
+      max-width: 1200px;
+      margin: 20px auto;
+    }
+    .form-label {
+      font-weight: bold;
+    }
+    .btn-custom {
+      margin-top: 20px;
+      padding: 10px 20px;
+      font-size: 16px;
+    }
+    .summary {
+      margin-top: 20px;
+      padding: 15px;
+      background-color: #f8f9fa;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+    .report-section {
+      margin-bottom: 20px;
+      padding: 15px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      background-color: #f8f9fa;
+    }
+    .history-section {
+      margin-bottom: 20px;
+      padding: 15px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      background-color: #f8f9fa;
+      display: none; /* Oculta o histórico inicialmente */
+    }
+    .history-entry {
+      margin-bottom: 10px;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      background-color: #fff;
+    }
+    .dashboard {
+      margin-top: 40px;
+      display: none; /* Oculta o dashboard inicialmente */
+    }
+    .dashboard h2 {
+      margin-bottom: 20px;
+    }
+    .chart-container {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 20px;
+    }
+    .chart-container canvas {
+      width: 45% !important;
+      height: 300px !important;
+    }
+    .tooltip-icon {
+      cursor: pointer;
+      margin-left: 5px;
+      color: #6c757d;
+    }
+  </style>
+</head>
+<body>
+  <!-- Tela de Login -->
+  <div class="login-container" id="loginContainer">
+    <h2>Login</h2>
+    <div class="input-group">
+      <span class="input-group-text"><i class="bi bi-person"></i></span>
+      <input type="text" id="username" placeholder="Usuário" required>
+    </div>
+    <div class="input-group">
+      <span class="input-group-text"><i class="bi bi-lock"></i></span>
+      <input type="password" id="password" placeholder="Senha" required>
+    </div>
+    <button onclick="login()">Entrar</button>
+    <div class="feedback" id="feedback"></div>
+    <p><a href="#" onclick="showRecoverPassword()">Esqueci minha senha</a></p>
+    <p><a href="#" onclick="showSignUp()">Criar conta</a></p>
+  </div>
+
+  <!-- Página de Apontamentos (inicialmente oculta) -->
+  <div class="apontamento-container hidden" id="apontamentoContainer">
+    <h1>Apontamento de Produção</h1>
+
+    <!-- Campos do formulário -->
+    <form id="apontamentoForm">
+      <div class="mb-3">
+        <label for="date" class="form-label">Data:</label>
+        <input type="date" id="date" class="form-control" required>
+        <i class="bi bi-info-circle tooltip-icon" title="Insira a data do apontamento."></i>
+      </div>
+      <div class="mb-3">
+        <label for="operator" class="form-label">Operador:</label>
+        <input type="text" id="operator" class="form-control" oninput="formatUpperCase(this)" required>
+        <i class="bi bi-info-circle tooltip-icon" title="Nome do operador responsável."></i>
+      </div>
+      <div class="mb-3">
+        <label for="cnc" class="form-label">CNC:</label>
+        <select id="cnc" class="form-select" required>
+          <option value="1">1</option>
+          <option value="2">2</option>
+          <option value="3">3</option>
+        </select>
+        <i class="bi bi-info-circle tooltip-icon" title="Selecione o número da CNC."></i>
+      </div>
+      <div class="mb-3">
+        <label for="client" class="form-label">Cliente:</label>
+        <input type="text" id="client" class="form-control" oninput="formatUpperCase(this)" required>
+        <i class="bi bi-info-circle tooltip-icon" title="Nome do cliente."></i>
+      </div>
+      <div class="mb-3">
+        <label for="pv" class="form-label">Ordem de Produção:</label>
+        <input type="text" id="pv" class="form-control" oninput="formatNumbers(this)" required>
+        <i class="bi bi-info-circle tooltip-icon" title="Número da ordem de produção."></i>
+      </div>
+      <div class="mb-3">
+        <label for="productCode" class="form-label">Código do Produto:</label>
+        <input type="text" id="productCode" class="form-control" oninput="formatNumbers(this)" required>
+        <i class="bi bi-info-circle tooltip-icon" title="Código do produto sendo produzido."></i>
+      </div>
+      <div class="mb-3">
+        <label for="sheetsPerHour" class="form-label">Chapas por Hora (Capacidade Máxima):</label>
+        <input type="number" id="sheetsPerHour" class="form-control" required>
+        <i class="bi bi-info-circle tooltip-icon" title="Capacidade máxima de chapas por hora."></i>
+      </div>
+      <div class="mb-3">
+        <label for="flangesPerSheet" class="form-label">Flanges por Chapa:</label>
+        <input type="number" id="flangesPerSheet" class="form-control" required>
+        <i class="bi bi-info-circle tooltip-icon" title="Quantidade de flanges por chapa."></i>
+      </div>
+      <div class="mb-3">
+        <label for="cutSheets" class="form-label">Chapas Cortadas (Real):</label>
+        <input type="number" id="cutSheets" class="form-control" required>
+        <i class="bi bi-info-circle tooltip-icon" title="Quantidade real de chapas cortadas."></i>
+      </div>
+      <div class="mb-3">
+        <label for="deadFlanges" class="form-label">Flanges Mortas:</label>
+        <input type="number" id="deadFlanges" class="form-control" required>
+        <i class="bi bi-info-circle tooltip-icon" title="Quantidade de flanges mortas."></i>
+      </div>
+
+      <!-- Apontamento de Paradas -->
+      <div class="stops-section mb-3">
+        <h3>Apontamento de Paradas</h3>
+        <div class="mb-3">
+          <label for="startEndProduction" class="form-label">( I ) - Início e Final de Produção (minutos):</label>
+          <input type="number" id="startEndProduction" class="form-control" value="0" required>
+          <i class="bi bi-info-circle tooltip-icon" title="Tempo gasto no início e final de produção."></i>
+        </div>
+        <div class="mb-3">
+          <label for="idleTime" class="form-label">( O ) - Ociosidade (minutos):</label>
+          <input type="number" id="idleTime" class="form-control" value="0" required>
+          <i class="bi bi-info-circle tooltip-icon" title="Tempo ocioso durante a produção."></i>
+        </div>
+        <div class="mb-3">
+          <label for="technicalProblems" class="form-label">( P ) - Problemas Técnicos (minutos):</label>
+          <input type="number" id="technicalProblems" class="form-control" value="0" required>
+          <i class="bi bi-info-circle tooltip-icon" title="Tempo gasto com problemas técnicos."></i>
+        </div>
+        <div class="mb-3">
+          <label for="externalResponsibility" class="form-label">( R ) - Responsabilidade Externa (minutos):</label>
+          <input type="number" id="externalResponsibility" class="form-control" value="0" required>
+          <i class="bi bi-info-circle tooltip-icon" title="Tempo gasto por responsabilidade externa."></i>
+        </div>
+        <div class="mb-3">
+          <label for="lackOfManpower" class="form-label">( MO ) - Falta MO (minutos):</label>
+          <input type="number" id="lackOfManpower" class="form-control" value="0" required>
+          <i class="bi bi-info-circle tooltip-icon" title="Tempo perdido por falta de mão de obra."></i>
+        </div>
+        <div class="mb-3">
+          <label for="supply" class="form-label">( ABS ) - Abastecimento (minutos):</label>
+          <input type="number" id="supply" class="form-control" value="0" required>
+          <i class="bi bi-info-circle tooltip-icon" title="Tempo gasto com abastecimento."></i>
+        </div>
+        <div class="mb-3">
+          <label for="drumDisposal" class="form-label">( DT ) - Descarte Tambores (minutos):</label>
+          <input type="number" id="drumDisposal" class="form-control" value="0" required>
+          <i class="bi bi-info-circle tooltip-icon" title="Tempo gasto com descarte de tambores."></i>
+        </div>
+        <div class="mb-3">
+          <label for="sacrificialSheetChange" class="form-label">( TCS ) - Troca Chapa de Sacrifício (minutos):</label>
+          <input type="number" id="sacrificialSheetChange" class="form-control" value="0" required>
+          <i class="bi bi-info-circle tooltip-icon" title="Tempo gasto com troca de chapas de sacrifício."></i>
+        </div>
+        <div class="mb-3">
+          <label for="programAdjustment" class="form-label">( PR ) - Ajuste ou Falta de Programa (minutos):</label>
+          <input type="number" id="programAdjustment" class="form-control" value="0" required>
+          <i class="bi bi-info-circle tooltip-icon" title="Tempo gasto com ajustes ou falta de programa."></i>
+        </div>
+      </div>
+
+      <button type="button" class="btn btn-success btn-custom" onclick="saveEntry()">
+        <i class="bi bi-save"></i> Salvar Apontamento
+      </button>
+      <button type="button" class="btn btn-danger btn-custom" onclick="clearForm()">
+        <i class="bi bi-x-circle"></i> Limpar Campos
+      </button>
+    </form>
+
+    <!-- Resumo após salvar -->
+    <div id="summary" class="summary"></div>
+
+    <!-- Histórico de Apontamentos -->
+    <div class="history">
+      <h2>Histórico de Apontamentos</h2>
+      <button type="button" class="btn btn-primary btn-custom" onclick="toggleHistory()">
+        <i class="bi bi-clock-history"></i> Exibir Histórico
+      </button>
+      <div id="historyResult" class="history-section"></div>
+    </div>
+
+    <!-- Relatório -->
+    <div class="report">
+      <h2>Relatório Diário</h2>
+      <button type="button" class="btn btn-primary btn-custom" onclick="generateReport()">
+        <i class="bi bi-file-earmark-text"></i> Gerar Relatório Completo
+      </button>
+      <button type="button" class="btn btn-success btn-custom" onclick="exportToExcel()">
+        <i class="bi bi-file-earmark-excel"></i> Exportar para Excel
+      </button>
+      <button type="button" class="btn btn-warning btn-custom" onclick="exportToPDF()">
+        <i class="bi bi-file-earmark-pdf"></i> Exportar para PDF
+      </button>
+      <div id="reportResult"></div>
+    </div>
+
+    <!-- Dashboard de Indicadores -->
+    <div class="dashboard">
+      <h2>Dashboard de Indicadores</h2>
+      <button type="button" class="btn btn-info btn-custom" onclick="toggleDashboard()">
+        <i class="bi bi-bar-chart-line"></i> Exibir Dashboard
+      </button>
+      <div class="chart-container">
+        <canvas id="efficiencyChart"></canvas>
+        <canvas id="stopsChart"></canvas>
+      </div>
+      <button type="button" class="btn btn-secondary btn-custom" onclick="exportChartAsImage()">
+        <i class="bi bi-download"></i> Exportar Gráficos como Imagem
+      </button>
+    </div>
+  </div>
+
+  <script>
+    let entries = [];
+    let efficiencyChart, stopsChart;
+
+    // Função de login
+    function login() {
+      const username = document.getElementById('username').value;
+      const password = document.getElementById('password').value;
+      const feedback = document.getElementById('feedback');
+
+      // Verificação simples de usuário e senha
+      if (username === "admin" && password === "1234") {
+        // Oculta a tela de login e exibe a página de apontamentos
+        document.getElementById('loginContainer').classList.add('hidden');
+        document.getElementById('apontamentoContainer').classList.remove('hidden');
+        feedback.textContent = "";
+      } else {
+        attempts++;
+        if (attempts >= 3) {
+          feedback.textContent = "Conta bloqueada. Tente novamente mais tarde.";
+          document.querySelector('button').disabled = true;
+        } else {
+          feedback.textContent = "Usuário ou senha incorretos!";
+        }
+      }
+    }
+
+    // Função para exibir tela de recuperação de senha
+    function showRecoverPassword() {
+      alert("Funcionalidade de recuperação de senha em desenvolvimento.");
+    }
+
+    // Função para exibir tela de cadastro
+    function showSignUp() {
+      alert("Funcionalidade de cadastro em desenvolvimento.");
+    }
+
+    // Função para formatar texto em maiúsculas
+    function formatUpperCase(input) {
+      input.value = input.value.toUpperCase();
+    }
+
+    // Função para permitir apenas números
+    function formatNumbers(input) {
+      input.value = input.value.replace(/[^0-9]/g, '');
+    }
+
+    // Função para validar campos
+    function validateFields() {
+      const requiredFields = [
+        'date', 'operator', 'cnc', 'client', 'pv', 'productCode',
+        'sheetsPerHour', 'flangesPerSheet', 'cutSheets', 'deadFlanges',
+        'startEndProduction', 'idleTime', 'technicalProblems', 'externalResponsibility',
+        'lackOfManpower', 'supply', 'drumDisposal', 'sacrificialSheetChange', 'programAdjustment'
+      ];
+
+      for (const fieldId of requiredFields) {
+        const field = document.getElementById(fieldId);
+        if (!field.value && field.value !== '0') {
+          alert(`O campo ${fieldId} é obrigatório!`);
+          return false;
+        }
+        if (field.type === 'number' && field.value < 0) {
+          alert(`O campo ${fieldId} não pode ser negativo!`);
+          return false;
+        }
+      }
+
+      const dateField = document.getElementById('date');
+      const selectedDate = new Date(dateField.value);
+      const today = new Date();
+      if (selectedDate > today) {
+        alert("A data não pode ser futura!");
+        return false;
+      }
+
+      return true;
+    }
+
+    // Função para salvar o apontamento
+    function saveEntry() {
+      if (!validateFields()) return;
+
+      const entry = {
+        date: document.getElementById('date').value,
+        operator: document.getElementById('operator').value,
+        cnc: document.getElementById('cnc').value,
+        client: document.getElementById('client').value,
+        pv: document.getElementById('pv').value,
+        productCode: document.getElementById('productCode').value,
+        sheetsPerHour: parseInt(document.getElementById('sheetsPerHour').value),
+        flangesPerSheet: parseInt(document.getElementById('flangesPerSheet').value),
+        cutSheets: parseInt(document.getElementById('cutSheets').value),
+        deadFlanges: parseInt(document.getElementById('deadFlanges').value),
+        startEndProduction: parseInt(document.getElementById('startEndProduction').value),
+        idleTime: parseInt(document.getElementById('idleTime').value),
+        technicalProblems: parseInt(document.getElementById('technicalProblems').value),
+        externalResponsibility: parseInt(document.getElementById('externalResponsibility').value),
+        lackOfManpower: parseInt(document.getElementById('lackOfManpower').value),
+        supply: parseInt(document.getElementById('supply').value),
+        drumDisposal: parseInt(document.getElementById('drumDisposal').value),
+        sacrificialSheetChange: parseInt(document.getElementById('sacrificialSheetChange').value),
+        programAdjustment: parseInt(document.getElementById('programAdjustment').value)
+      };
+
+      entries.push(entry);
+      updateSummary(entry);
+      updateHistory();
+      updateDashboard();
+      clearForm();
+      alert("Apontamento salvo com sucesso!");
+    }
+
+    // Função para atualizar o resumo
+    function updateSummary(entry) {
+      const efficiency = (entry.cutSheets / entry.sheetsPerHour) * 100;
+      const summary = `
+        <h3>Resumo da Hora:</h3>
+        <p>Quantidade que deveria cortar: ${entry.sheetsPerHour}</p>
+        <p>Quantidade cortada: ${entry.cutSheets}</p>
+        <p>Eficiência: ${efficiency.toFixed(2)}%</p>
+      `;
+      document.getElementById('summary').innerHTML = summary;
+    }
+
+    // Função para alternar a visibilidade do histórico
+    function toggleHistory() {
+      const historySection = document.getElementById('historyResult');
+      historySection.style.display = historySection.style.display === 'none' ? 'block' : 'none';
+      if (historySection.style.display === 'block') {
+        updateHistory();
+      }
+    }
+
+    // Função para atualizar o histórico
+    function updateHistory() {
+      const historyResult = document.getElementById('historyResult');
+      historyResult.innerHTML = '<h3>Últimos Apontamentos:</h3>';
+
+      entries.slice(-5).forEach((entry, index) => {
+        const historyEntry = `
+          <div class="history-entry">
+            <p><strong>Apontamento ${index + 1}:</strong></p>
+            <p>Data: ${entry.date} | CNC: ${entry.cnc} | Operador: ${entry.operator}</p>
+            <p>Cliente: ${entry.client} | PV: ${entry.pv} | Código: ${entry.productCode}</p>
+            <p>Chapas Cortadas: ${entry.cutSheets} | Eficiência: ${((entry.cutSheets / entry.sheetsPerHour) * 100).toFixed(2)}%</p>
+          </div>
+        `;
+        historyResult.innerHTML += historyEntry;
+      });
+    }
+
+    // Função para alternar a visibilidade do dashboard
+    function toggleDashboard() {
+      const dashboardSection = document.querySelector('.dashboard');
+      dashboardSection.style.display = dashboardSection.style.display === 'none' ? 'block' : 'none';
+      if (dashboardSection.style.display === 'block') {
+        updateDashboard();
+      }
+    }
+
+    // Função para limpar o formulário
+    function clearForm() {
+      const fields = [
+        'date', 'operator', 'cnc', 'client', 'pv', 'productCode',
+        'sheetsPerHour', 'flangesPerSheet', 'cutSheets', 'deadFlanges',
+        'startEndProduction', 'idleTime', 'technicalProblems', 'externalResponsibility',
+        'lackOfManpower', 'supply', 'drumDisposal', 'sacrificialSheetChange', 'programAdjustment'
+      ];
+
+      fields.forEach(fieldId => {
+        const field = document.getElementById(fieldId);
+        field.value = field.type === 'select-one' ? '1' : '';
+      });
+
+      document.getElementById('summary').innerHTML = '';
+    }
+
+    // Função para gerar o relatório diário
+    function generateReport() {
+      if (entries.length === 0) {
+        alert("Nenhum apontamento registrado ainda!");
+        return;
+      }
+
+      const groupedEntries = entries.reduce((acc, entry) => {
+        if (!acc[entry.date]) acc[entry.date] = {};
+        if (!acc[entry.date][entry.cnc]) acc[entry.date][entry.cnc] = [];
+        acc[entry.date][entry.cnc].push(entry);
+        return acc;
+      }, {});
+
+      let report = '';
+      let totals = { cutSheets: 0, deadFlanges: 0, capacity: 0, flangesProduced: 0, hoursWorked: 0, hoursStopped: 0 };
+
+      for (const date in groupedEntries) {
+        report += `<div class="report-section"><h3>Data: ${date}</h3>`;
+
+        for (const cnc in groupedEntries[date]) {
+          const cncEntries = groupedEntries[date][cnc];
+          const cncTotals = cncEntries.reduce((acc, entry) => ({
+            cutSheets: acc.cutSheets + entry.cutSheets,
+            deadFlanges: acc.deadFlanges + entry.deadFlanges,
+            capacity: acc.capacity + entry.sheetsPerHour,
+            flangesProduced: acc.flangesProduced + (entry.cutSheets * entry.flangesPerSheet),
+            hoursWorked: acc.hoursWorked + 1,
+            hoursStopped: acc.hoursStopped + (
+              entry.startEndProduction + entry.idleTime + entry.technicalProblems +
+              entry.externalResponsibility + entry.lackOfManpower + entry.supply +
+              entry.drumDisposal + entry.sacrificialSheetChange + entry.programAdjustment
+            ) / 60 // Convertendo minutos para horas
+          }), { cutSheets: 0, deadFlanges: 0, capacity: 0, flangesProduced: 0, hoursWorked: 0, hoursStopped: 0 });
+
+          report += `
+            <h4>CNC: ${cnc}</h4>
+            <p>Horas Trabalhadas: ${cncTotals.hoursWorked}</p>
+            <p>Horas Paradas: ${cncTotals.hoursStopped.toFixed(2)}</p>
+            <p>Capacidade Máxima (Chapas por Hora): ${cncTotals.capacity}</p>
+            <p>Chapas Cortadas (Real): ${cncTotals.cutSheets}</p>
+            <p>Flanges Cortadas: ${cncTotals.flangesProduced}</p>
+            <p>Eficiência: ${((cncTotals.cutSheets / cncTotals.capacity) * 100).toFixed(2)}%</p>
+            <p>Total de Flanges Mortas: ${cncTotals.deadFlanges}</p>
+          `;
+
+          Object.keys(totals).forEach(key => totals[key] += cncTotals[key]);
+        }
+
+        report += `</div>`;
+      }
+
+      // Total Consolidado dos 3 CNCs
+      report += `<div class="report-section"><h3>Total Consolidado dos 3 CNCs</h3>`;
+      report += `
+        <p>Horas Trabalhadas: ${totals.hoursWorked}</p>
+        <p>Horas Paradas: ${totals.hoursStopped.toFixed(2)}</p>
+        <p>Capacidade Máxima (Chapas por Hora): ${totals.capacity}</p>
+        <p>Chapas Cortadas (Real): ${totals.cutSheets}</p>
+        <p>Flanges Cortadas: ${totals.flangesProduced}</p>
+        <p>Eficiência: ${((totals.cutSheets / totals.capacity) * 100).toFixed(2)}%</p>
+        <p>Total de Flanges Mortas: ${totals.deadFlanges}</p>
+      `;
+      report += `</div>`;
+
+      document.getElementById('reportResult').innerHTML = report;
+    }
+
+    // Função para exportar para Excel
+    function exportToExcel() {
+      if (entries.length === 0) {
+        alert("Nenhum apontamento registrado ainda!");
+        return;
+      }
+
+      const worksheetData = entries.map(entry => [
+        entry.date,
+        entry.operator,
+        entry.cnc,
+        entry.client,
+        entry.pv,
+        entry.productCode,
+        entry.sheetsPerHour,
+        entry.flangesPerSheet,
+        entry.cutSheets,
+        entry.deadFlanges,
+        entry.startEndProduction,
+        entry.idleTime,
+        entry.technicalProblems,
+        entry.externalResponsibility,
+        entry.lackOfManpower,
+        entry.supply,
+        entry.drumDisposal,
+        entry.sacrificialSheetChange,
+        entry.programAdjustment
+      ]);
+
+      const worksheet = XLSX.utils.aoa_to_sheet([
+        ["Data", "Operador", "CNC", "Cliente", "Ordem de Produção", "Código do Produto", "Chapas por Hora", "Flanges por Chapa", "Chapas Cortadas", "Flanges Mortas",
+         "( I ) - Início e Final de Produção (minutos)", "( O ) - Ociosidade (minutos)", "( P ) - Problemas Técnicos (minutos)", "( R ) - Responsabilidade Externa (minutos)",
+         "( MO ) - Falta MO (minutos)", "( ABS ) - Abastecimento (minutos)", "( DT ) - Descarte Tambores (minutos)", "( TCS ) - Troca Chapa de Sacrifício (minutos)", "( PR ) - Ajuste ou Falta de Programa (minutos)"],
+        ...worksheetData
+      ]);
+
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Apontamentos");
+
+      XLSX.writeFile(workbook, "apontamentos.xlsx");
+    }
+
+    // Função para exportar para PDF
+    function exportToPDF() {
+      if (entries.length === 0) {
+        alert("Nenhum apontamento registrado ainda!");
+        return;
+      }
+
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
+
+      // Título do relatório
+      doc.setFontSize(18);
+      doc.text("Relatório Diário de Apontamentos", 10, 10);
+
+      // Conteúdo do relatório
+      let y = 20;
+      const groupedEntries = entries.reduce((acc, entry) => {
+        if (!acc[entry.date]) acc[entry.date] = {};
+        if (!acc[entry.date][entry.cnc]) acc[entry.date][entry.cnc] = [];
+        acc[entry.date][entry.cnc].push(entry);
+        return acc;
+      }, {});
+
+      for (const date in groupedEntries) {
+        doc.setFontSize(14);
+        doc.text(`Data: ${date}`, 10, y);
+        y += 10;
+
+        for (const cnc in groupedEntries[date]) {
+          const cncEntries = groupedEntries[date][cnc];
+          const cncTotals = cncEntries.reduce((acc, entry) => ({
+            cutSheets: acc.cutSheets + entry.cutSheets,
+            deadFlanges: acc.deadFlanges + entry.deadFlanges,
+            capacity: acc.capacity + entry.sheetsPerHour,
+            flangesProduced: acc.flangesProduced + (entry.cutSheets * entry.flangesPerSheet),
+            hoursWorked: acc.hoursWorked + 1,
+            hoursStopped: acc.hoursStopped + (
+              entry.startEndProduction + entry.idleTime + entry.technicalProblems +
+              entry.externalResponsibility + entry.lackOfManpower + entry.supply +
+              entry.drumDisposal + entry.sacrificialSheetChange + entry.programAdjustment
+            ) / 60 // Convertendo minutos para horas
+          }), { cutSheets: 0, deadFlanges: 0, capacity: 0, flangesProduced: 0, hoursWorked: 0, hoursStopped: 0 });
+
+          doc.setFontSize(12);
+          doc.text(`CNC: ${cnc}`, 15, y);
+          y += 7;
+          doc.text(`Horas Trabalhadas: ${cncTotals.hoursWorked}`, 20, y);
+          y += 7;
+          doc.text(`Horas Paradas: ${cncTotals.hoursStopped.toFixed(2)}`, 20, y);
+          y += 7;
+          doc.text(`Capacidade Máxima (Chapas por Hora): ${cncTotals.capacity}`, 20, y);
+          y += 7;
+          doc.text(`Chapas Cortadas (Real): ${cncTotals.cutSheets}`, 20, y);
+          y += 7;
+          doc.text(`Flanges Cortadas: ${cncTotals.flangesProduced}`, 20, y);
+          y += 7;
+          doc.text(`Eficiência: ${((cncTotals.cutSheets / cncTotals.capacity) * 100).toFixed(2)}%`, 20, y);
+          y += 7;
+          doc.text(`Total de Flanges Mortas: ${cncTotals.deadFlanges}`, 20, y);
+          y += 10;
+        }
+      }
+
+      // Total Consolidado dos 3 CNCs
+      const totals = entries.reduce((acc, entry) => ({
+        cutSheets: acc.cutSheets + entry.cutSheets,
+        deadFlanges: acc.deadFlanges + entry.deadFlanges,
+        capacity: acc.capacity + entry.sheetsPerHour,
+        flangesProduced: acc.flangesProduced + (entry.cutSheets * entry.flangesPerSheet),
+        hoursWorked: acc.hoursWorked + 1,
+        hoursStopped: acc.hoursStopped + (
+          entry.startEndProduction + entry.idleTime + entry.technicalProblems +
+          entry.externalResponsibility + entry.lackOfManpower + entry.supply +
+          entry.drumDisposal + entry.sacrificialSheetChange + entry.programAdjustment
+        ) / 60 // Convertendo minutos para horas
+      }), { cutSheets: 0, deadFlanges: 0, capacity: 0, flangesProduced: 0, hoursWorked: 0, hoursStopped: 0 });
+
+      doc.setFontSize(14);
+      doc.text("Total Consolidado dos 3 CNCs", 10, y);
+      y += 10;
+      doc.setFontSize(12);
+      doc.text(`Horas Trabalhadas: ${totals.hoursWorked}`, 15, y);
+      y += 7;
+      doc.text(`Horas Paradas: ${totals.hoursStopped.toFixed(2)}`, 15, y);
+      y += 7;
+      doc.text(`Capacidade Máxima (Chapas por Hora): ${totals.capacity}`, 15, y);
+      y += 7;
+      doc.text(`Chapas Cortadas (Real): ${totals.cutSheets}`, 15, y);
+      y += 7;
+      doc.text(`Flanges Cortadas: ${totals.flangesProduced}`, 15, y);
+      y += 7;
+      doc.text(`Eficiência: ${((totals.cutSheets / totals.capacity) * 100).toFixed(2)}%`, 15, y);
+      y += 7;
+      doc.text(`Total de Flanges Mortas: ${totals.deadFlanges}`, 15, y);
+
+      // Salvar o PDF
+      doc.save("relatorio_diario.pdf");
+    }
+
+    // Função para atualizar o dashboard
+    function updateDashboard() {
+      const totals = entries.reduce((acc, entry) => ({
+        cutSheets: acc.cutSheets + entry.cutSheets,
+        deadFlanges: acc.deadFlanges + entry.deadFlanges,
+        capacity: acc.capacity + entry.sheetsPerHour,
+        flangesProduced: acc.flangesProduced + (entry.cutSheets * entry.flangesPerSheet),
+        hoursWorked: acc.hoursWorked + 1,
+        hoursStopped: acc.hoursStopped + (
+          entry.startEndProduction + entry.idleTime + entry.technicalProblems +
+          entry.externalResponsibility + entry.lackOfManpower + entry.supply +
+          entry.drumDisposal + entry.sacrificialSheetChange + entry.programAdjustment
+        ) / 60 // Convertendo minutos para horas
+      }), { cutSheets: 0, deadFlanges: 0, capacity: 0, flangesProduced: 0, hoursWorked: 0, hoursStopped: 0 });
+
+      const efficiency = ((totals.cutSheets / totals.capacity) * 100).toFixed(2);
+
+      // Atualizar gráfico de eficiência
+      if (efficiencyChart) efficiencyChart.destroy();
+      const efficiencyCtx = document.getElementById('efficiencyChart').getContext('2d');
+      efficiencyChart = new Chart(efficiencyCtx, {
+        type: 'bar',
+        data: {
+          labels: ['Eficiência'],
+          datasets: [{
+            label: 'Eficiência (%)',
+            data: [efficiency],
+            backgroundColor: 'rgba(75, 192, 192, 0.2)',
+            borderColor: 'rgba(75, 192, 192, 1)',
+            borderWidth: 1
+          }]
+        },
+        options: {
+          scales: {
+            y: {
+              beginAtZero: true,
+              max: 100
+            }
+          }
+        }
+      });
+
+      // Atualizar gráfico de paradas
+      if (stopsChart) stopsChart.destroy();
+      const stopsCtx = document.getElementById('stopsChart').getContext('2d');
+      stopsChart = new Chart(stopsCtx, {
+        type: 'pie',
+        data: {
+          labels: ['Horas Trabalhadas', 'Horas Paradas'],
+          datasets: [{
+            label: 'Horas',
+            data: [totals.hoursWorked, totals.hoursStopped],
+            backgroundColor: ['rgba(54, 162, 235, 0.2)', 'rgba(255, 99, 132, 0.2)'],
+            borderColor: ['rgba(54, 162, 235, 1)', 'rgba(255, 99, 132, 1)'],
+            borderWidth: 1
+          }]
+        }
+      });
+    }
+
+    // Função para exportar gráficos como imagens
+    function exportChartAsImage() {
+      const efficiencyCanvas = document.getElementById('efficiencyChart');
+      const stopsCanvas = document.getElementById('stopsChart');
+
+      html2canvas(efficiencyCanvas).then(canvas => {
+        const link = document.createElement('a');
+        link.href = canvas.toDataURL('image/png');
+        link.download = 'grafico_eficiencia.png';
+        link.click();
+      });
+
+      html2canvas(stopsCanvas).then(canvas => {
+        const link = document.createElement('a');
+        link.href = canvas.toDataURL('image/png');
+        link.download = 'grafico_paradas.png';
+        link.click();
+      });
+    }
+
+    // Inicializar tooltips do Bootstrap
+    const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    const tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+      return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+  </script>
+</body>
+</html>
