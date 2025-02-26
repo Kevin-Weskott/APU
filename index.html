@@ -4,17 +4,11 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Apontamento de Produção</title>
-  <!-- Incluindo Bootstrap para melhorar a interface -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-  <!-- Incluindo Bootstrap Icons -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
-  <!-- Incluindo Chart.js para gráficos -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <!-- Incluindo SheetJS para exportar para Excel -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.0/xlsx.full.min.js"></script>
-  <!-- Incluindo jsPDF para exportar para PDF -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-  <!-- Incluindo html2canvas para exportar gráficos como imagens -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <style>
     body {
@@ -24,52 +18,13 @@
       margin: 0;
       padding: 0;
     }
-    .login-container {
-      background-color: #fff;
-      padding: 20px;
-      border-radius: 8px;
-      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-      width: 300px;
-      text-align: center;
-      margin: 20px auto;
-    }
-    .login-container h2 {
-      margin-bottom: 20px;
-      color: #28a745;
-    }
-    .login-container input {
-      width: 100%;
-      padding: 10px;
-      margin: 10px 0;
-      border: 1px solid #ccc;
-      border-radius: 4px;
-    }
-    .login-container button {
-      width: 100%;
-      padding: 10px;
-      background-color: #28a745;
-      color: white;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-    }
-    .login-container button:hover {
-      background-color: #218838;
-    }
-    .hidden {
-      display: none;
-    }
-    .feedback {
-      margin-top: 10px;
-      color: red;
-    }
-    .apontamento-container {
+    .form-container {
       background-color: #fff;
       padding: 20px;
       border-radius: 8px;
       box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
       width: 95%;
-      max-width: 1200px;
+      max-width: 800px;
       margin: 20px auto;
     }
     .form-label {
@@ -80,120 +35,91 @@
       padding: 10px 20px;
       font-size: 16px;
     }
-    .summary {
-      margin-top: 20px;
-      padding: 15px;
-      background-color: #f8f9fa;
-      border: 1px solid #ccc;
-      border-radius: 5px;
-    }
-    .report-section {
-      margin-bottom: 20px;
-      padding: 15px;
-      border: 1px solid #ccc;
-      border-radius: 5px;
-      background-color: #f8f9fa;
-    }
-    .history-section {
-      margin-bottom: 20px;
-      padding: 15px;
-      border: 1px solid #ccc;
-      border-radius: 5px;
-      background-color: #f8f9fa;
-      display: none; /* Oculta o histórico inicialmente */
-    }
-    .history-entry {
-      margin-bottom: 10px;
-      padding: 10px;
-      border: 1px solid #ddd;
-      border-radius: 4px;
-      background-color: #fff;
-    }
-    .dashboard {
-      margin-top: 40px;
-      display: none; /* Oculta o dashboard inicialmente */
-    }
-    .dashboard h2 {
-      margin-bottom: 20px;
-    }
-    .chart-container {
-      display: flex;
-      justify-content: space-between;
-      margin-bottom: 20px;
-    }
-    .chart-container canvas {
-      width: 45% !important;
-      height: 300px !important;
-    }
-    .tooltip-icon {
-      cursor: pointer;
-      margin-left: 5px;
-      color: #6c757d;
-    }
   </style>
 </head>
 <body>
 
-<form action="processar.php" method="post">
-        <label for="data">Data:</label>
-        <input type="date" id="data" name="data" required><br><br>
-
-        <label for="operador">Operador:</label>
-        <input type="text" id="operador" name="operador" required><br><br>
-
-        <label for="cnc">CNC:</label>
-        <input type="text" id="cnc" name="cnc" required><br><br>
-
-        <label for="cliente">Cliente:</label>
-        <input type="text" id="cliente" name="cliente" required><br><br>
-
-        <label for="ordem_producao">Ordem de Produção:</label>
-        <input type="text" id="ordem_producao" name="ordem_producao" required><br><br>
-
-        <label for="codigo_produto">Código do Produto:</label>
-        <input type="text" id="codigo_produto" name="codigo_produto" required><br><br>
-
-        <label for="chapas_por_hora">Chapas por Hora:</label>
-        <input type="number" id="chapas_por_hora" name="chapas_por_hora"><br><br>
-
-        <label for="flanges_por_chapa">Flanges por Chapa:</label>
-        <input type="number" id="flanges_por_chapa" name="flanges_por_chapa"><br><br>
-
-        <label for="chapas_cortadas">Chapas Cortadas:</label>
-        <input type="number" id="chapas_cortadas" name="chapas_cortadas"><br><br>
-
-        <label for="flanges_mortas">Flanges Mortas:</label>
-        <input type="number" id="flanges_mortas" name="flanges_mortas"><br><br>
-
-        <label for="inicio_final_producao">Início e Final de Produção (minutos):</label>
-        <input type="number" id="inicio_final_producao" name="inicio_final_producao"><br><br>
-
-        <label for="ociosidade">Ociosidade (minutos):</label>
-        <input type="number" id="ociosidade" name="ociosidade"><br><br>
-
-        <label for="problemas_tecnicos">Problemas Técnicos (minutos):</label>
-        <input type="number" id="problemas_tecnicos" name="problemas_tecnicos"><br><br>
-
-        <label for="responsabilidade_externa">Responsabilidade Externa (minutos):</label>
-        <input type="number" id="responsabilidade_externa" name="responsabilidade_externa"><br><br>
-
-        <label for="falta_mo">Falta MO (minutos):</label>
-        <input type="number" id="falta_mo" name="falta_mo"><br><br>
-
-        <label for="abastecimento">Abastecimento (minutos):</label>
-        <input type="number" id="abastecimento" name="abastecimento"><br><br>
-
-        <label for="descarte_tambores">Descarte Tambores (minutos):</label>
-        <input type="number" id="descarte_tambores" name="descarte_tambores"><br><br>
-
-        <label for="troca_chapa_sacrificio">Troca Chapa de Sacrifício (minutos):</label>
-        <input type="number" id="troca_chapa_sacrificio" name="troca_chapa_sacrificio"><br><br>
-
-        <label for="ajuste_falta_programa">Ajuste ou Falta de Programa (minutos):</label>
-        <input type="number" id="ajuste_falta_programa" name="ajuste_falta_programa"><br><br>
-
-        <button type="submit">Enviar</button>
-    </form>
+<div class="form-container">
+  <form action="processar.php" method="post">
+    <div class="mb-3">
+      <label for="data" class="form-label">Data:</label>
+      <input type="date" id="data" name="data" class="form-control" required>
+    </div>
+    <div class="mb-3">
+      <label for="operador" class="form-label">Operador:</label>
+      <input type="text" id="operador" name="operador" class="form-control" required>
+    </div>
+    <div class="mb-3">
+      <label for="cnc" class="form-label">CNC:</label>
+      <input type="text" id="cnc" name="cnc" class="form-control" required>
+    </div>
+    <div class="mb-3">
+      <label for="cliente" class="form-label">Cliente:</label>
+      <input type="text" id="cliente" name="cliente" class="form-control" required>
+    </div>
+    <div class="mb-3">
+      <label for="ordem_producao" class="form-label">Ordem de Produção:</label>
+      <input type="text" id="ordem_producao" name="ordem_producao" class="form-control" required>
+    </div>
+    <div class="mb-3">
+      <label for="codigo_produto" class="form-label">Código do Produto:</label>
+      <input type="text" id="codigo_produto" name="codigo_produto" class="form-control" required>
+    </div>
+    <div class="mb-3">
+      <label for="chapas_por_hora" class="form-label">Chapas por Hora:</label>
+      <input type="number" id="chapas_por_hora" name="chapas_por_hora" class="form-control">
+    </div>
+    <div class="mb-3">
+      <label for="flanges_por_chapa" class="form-label">Flanges por Chapa:</label>
+      <input type="number" id="flanges_por_chapa" name="flanges_por_chapa" class="form-control">
+    </div>
+    <div class="mb-3">
+      <label for="chapas_cortadas" class="form-label">Chapas Cortadas:</label>
+      <input type="number" id="chapas_cortadas" name="chapas_cortadas" class="form-control">
+    </div>
+    <div class="mb-3">
+      <label for="flanges_mortas" class="form-label">Flanges Mortas:</label>
+      <input type="number" id="flanges_mortas" name="flanges_mortas" class="form-control">
+    </div>
+    <div class="mb-3">
+      <label for="inicio_final_producao" class="form-label">Início e Final de Produção (minutos):</label>
+      <input type="number" id="inicio_final_producao" name="inicio_final_producao" class="form-control">
+    </div>
+    <div class="mb-3">
+      <label for="ociosidade" class="form-label">Ociosidade (minutos):</label>
+      <input type="number" id="ociosidade" name="ociosidade" class="form-control">
+    </div>
+    <div class="mb-3">
+      <label for="problemas_tecnicos" class="form-label">Problemas Técnicos (minutos):</label>
+      <input type="number" id="problemas_tecnicos" name="problemas_tecnicos" class="form-control">
+    </div>
+    <div class="mb-3">
+      <label for="responsabilidade_externa" class="form-label">Responsabilidade Externa (minutos):</label>
+      <input type="number" id="responsabilidade_externa" name="responsabilidade_externa" class="form-control">
+    </div>
+    <div class="mb-3">
+      <label for="falta_mo" class="form-label">Falta MO (minutos):</label>
+      <input type="number" id="falta_mo" name="falta_mo" class="form-control">
+    </div>
+    <div class="mb-3">
+      <label for="abastecimento" class="form-label">Abastecimento (minutos):</label>
+      <input type="number" id="abastecimento" name="abastecimento" class="form-control">
+    </div>
+    <div class="mb-3">
+      <label for="descarte_tambores" class="form-label">Descarte Tambores (minutos):</label>
+      <input type="number" id="descarte_tambores" name="descarte_tambores" class="form-control">
+    </div>
+    <div class="mb-3">
+      <label for="troca_chapa_sacrificio" class="form-label">Troca Chapa de Sacrifício (minutos):</label>
+      <input type="number" id="troca_chapa_sacrificio" name="troca_chapa_sacrificio" class="form-control">
+    </div>
+    <div class="mb-3">
+      <label for="ajuste_falta_programa" class="form-label">Ajuste ou Falta de Programa (minutos):</label>
+      <input type="number" id="ajuste_falta_programa" name="ajuste_falta_programa" class="form-control">
+    </div>
+    <button type="submit" class="btn btn-primary btn-custom">Enviar</button>
+  </form>
+</div>
 
 </body>
 </html>
